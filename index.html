@@ -358,7 +358,7 @@
         </div>
         <div class="field">
           <label>الإيميل (اختياري)</label>
-          <input type="email" id="f_email" placeholder="example@mail.com">
+          <input type="email" id="f_email" placeholder="eample@mail.com">
         </div>
         <div class="field">
           <label>نوع المعدة</label>
@@ -551,7 +551,7 @@
     }
 
     const text = encodeURIComponent(
-      `طلب جديد من لوحة الوصلات\nالاسم: ${name}\nالنوع: ${cat}\nالتفاصيل: ${details}\nالاستخدام: ${purpose || '—'}\nالمدة: ${duration}\nواتساب العميل: ${wa}`
+      `طلب جديد \nالاسم: ${name}\nالنوع: ${cat}\nالتفاصيل: ${details}\nالاستخدام: ${purpose || '—'}\nالمدة: ${duration}\nواتساب العميل: ${wa}`
     );
     document.getElementById('waLink').href = `https://wa.me/${BUSINESS_WHATSAPP}?text=${text}`;
     document.getElementById('mailLink').href = `mailto:${BUSINESS_EMAIL}?subject=${encodeURIComponent('طلب جديد - ' + name)}&body=${text}`;
