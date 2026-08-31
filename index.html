@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smmc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#14120F;
+    --panel:#1D1A15;
+    --panel-2:#262119;
+    --amber:#E8A33D;
+    --teal:#4FA89B;
+    --text:#F2EDE4;
+    --muted:#8F8676;
+    --line:#3A3226;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+    min-height:100vh;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+  .display{font-family:'Almarai', sans-serif; font-weight:800;}
+
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  .wrap{max-width:720px; margin:0 auto; padding:28px 20px 80px;}
+
+  /* header */
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    color:var(--teal);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 8px 2px var(--amber);
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  h1.display{
+    font-size:38px;
+    margin:0 0 10px;
+    line-height:1.25;
+  }
+  .sub{color:var(--muted); font-size:15px; margin:0 0 28px; max-width:52ch;}
+
+  /* patch bay signature */
+  .patchbay{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 18px;
+    margin-bottom:30px;
+    overflow:hidden;
+    position:relative;
+  }
+  .patchbay-row{display:flex; gap:14px; justify-content:space-between; position:relative; z-index:2;}
+  .jack{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .jack::after{
+    content:"";
+    width:10px;height:10px;border-radius:50%;
+    background:#12100c;
+    box-shadow:inset 0 0 3px #000;
+  }
+  .jack.live{border-color:var(--amber);}
+  .jack.live::after{
+    background:var(--amber);
+    box-shadow:0 0 10px 2px var(--amber);
+  }
+  .cable{
+    position:absolute; inset:0;
+    z-index:1;
+    pointer-events:none;
+  }
+  .patchbay-caption{
+    margin-top:14px; font-size:12px; color:var(--muted);
+    font-family:'JetBrains Mono', monospace;
+    display:flex; justify-content:space-between;
+  }
+
+  /* section sheet */
+  .sheet{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:26px 22px;
+  }
+  .sheet-title{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted);
+    border-bottom:1px dashed var(--line);
+    padding-bottom:12px;
+    margin-bottom:20px;
+    display:flex; justify-content:space-between;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .field{margin-bottom:18px;}
+  input[type=text], input[type=tel], input[type=email], select, textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:12px 13px;
+    color:var(--text);
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+    font-size:15px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  textarea{resize:vertical; min-height:90px;}
+  input:focus, select:focus, textarea:focus{border-color:var(--amber);}
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    padding:13px 18px;
+    border-radius:9px;
+    border:none;
+    font-size:15px; font-weight:600;
+    cursor:pointer;
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+  }
+  .btn-primary{background:var(--amber); color:#1a1305;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-outline{
+    background:transparent; border:1px solid var(--line); color:var(--text);
+    margin-top:10px;
+  }
+  .btn-outline:hover{border-color:var(--teal); color:var(--teal);}
+  .btn-wa{background:#1f4f45; color:#dff6ef; margin-top:10px;}
+  .btn-mail{background:var(--panel-2); border:1px solid var(--line); color:var(--text); margin-top:10px;}
+
+  .confirm{display:none;}
+  .confirm .ok{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--teal); font-size:13px; letter-spacing:.06em;
+    margin-bottom:6px;
+  }
+  .confirm h2{margin:0 0 8px; font-size:20px;}
+  .confirm p{color:var(--muted); font-size:14px; margin:0 0 18px;}
+
+  .toggle-admin{
+    text-align:center; margin-top:34px;
+  }
+  .toggle-admin button{
+    background:none; border:none; color:var(--muted);
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+  }
+
+  .admin{display:none;}
+
+  .staff-tabs{display:flex; gap:8px; margin-bottom:20px;}
+  .staff-tabs button{
+    flex:1; padding:10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--muted); cursor:pointer;
+    font-size:13px; font-family:'IBM Plex Sans Arabic', sans-serif;
+  }
+  .staff-tabs button.active{border-color:var(--amber); color:var(--amber);}
+
+  .item-card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .item-card .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .item-card .name{font-weight:600;}
+  .item-card .code{font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted);}
+  .badge{
+    font-family:'JetBrains Mono', monospace; font-size:11px; padding:3px 9px; border-radius:20px;
+    white-space:nowrap;
+  }
+  .badge.available{color:var(--teal); border:1px solid var(--teal);}
+  .badge.out{color:var(--amber); border:1px solid var(--amber);}
+  .item-meta{font-size:12px; color:var(--muted); margin-top:6px;}
+  .item-thumbs{display:flex; gap:6px; margin-top:10px;}
+  .item-thumbs img{width:46px; height:46px; object-fit:cover; border-radius:6px; border:1px solid var(--line);}
+  .item-actions{display:flex; gap:8px; margin-top:12px;}
+  .item-actions button{
+    flex:1; padding:9px; border-radius:7px; border:1px solid var(--line);
+    font-size:13px; cursor:pointer; font-family:'IBM Plex Sans Arabic', sans-serif;
+    background:transparent; color:var(--text);
+  }
+  .item-actions button.checkout{border-color:var(--amber); color:var(--amber);}
+  .item-actions button.checkin{border-color:var(--teal); color:var(--teal);}
+  .item-actions button.log{color:var(--muted);}
+
+  .log-list{margin-top:10px; border-top:1px dashed var(--line); padding-top:10px; display:none;}
+  .log-row{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); margin-bottom:8px;}
+  .log-row img{width:34px; height:34px; object-fit:cover; border-radius:5px; border:1px solid var(--line);}
+  .log-row .tag{font-family:'JetBrains Mono', monospace;}
+  .log-row .tag.out{color:var(--amber);}
+  .log-row .tag.in{color:var(--teal);}
+
+  .modal-bg{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+    align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px; width:100%; max-width:400px;
+  }
+  .modal h3{margin:0 0 12px; font-size:16px;}
+  .modal-preview{
+    width:100%; aspect-ratio:1/1; background:var(--panel-2); border-radius:10px;
+    border:1px solid var(--line); overflow:hidden; margin-bottom:14px;
+    display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px;
+  }
+  .modal-preview img{width:100%; height:100%; object-fit:cover;}
+  .add-item-form{display:flex; gap:8px; margin-bottom:18px;}
+  .add-item-form input{flex:1;}
+  .add-item-form button{
+    background:var(--amber); color:#1a1305; border:none; border-radius:8px; padding:0 16px; cursor:pointer; font-weight:600;
+  }
+
+  .import-row{
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+  }
+  .import-row label{margin:0; flex-shrink:0; font-size:13px; color:var(--text);}
+  .import-row input[type=file]{
+    flex:1; font-size:12px; color:var(--muted);
+  }
+  .import-row button{
+    background:var(--teal); color:#0b1a17; border:none; border-radius:7px; padding:8px 14px;
+    font-weight:600; cursor:pointer; font-size:13px; flex-shrink:0;
+  }
+  .import-status{font-size:12px; color:var(--muted); margin:-10px 0 16px; font-family:'JetBrains Mono', monospace;}
+
+  .cam-setup{display:flex; gap:8px; margin-bottom:16px;}
+  .cam-setup input{flex:1;}
+  .cam-setup button{
+    background:var(--teal); color:#0b1a17; border:none; border-radius:8px; padding:0 16px; cursor:pointer; font-weight:600;
+  }
+  .cam-frame{
+    width:100%; aspect-ratio:16/9; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:12px; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:13px; margin-bottom:10px;
+  }
+  .cam-frame video{width:100%; height:100%; object-fit:cover;}
+  .cam-status{font-size:12px; color:var(--muted); font-family:'JetBrains Mono', monospace;}
+  .req-card{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .req-card .top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .req-card .name{font-weight:600;}
+  .req-card .time{font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted);}
+  .req-card .cat{
+    display:inline-block; font-size:11px; color:var(--teal);
+    font-family:'JetBrains Mono', monospace;
+    border:1px solid var(--teal); border-radius:5px; padding:2px 7px;
+    margin-bottom:8px;
+  }
+  .req-card .details{font-size:14px; color:var(--text); margin-bottom:10px;}
+  .req-actions{display:flex; gap:8px;}
+  .req-actions a{
+    flex:1; text-align:center; font-size:13px; padding:8px; border-radius:7px;
+    border:1px solid var(--line); text-decoration:none;
+  }
+  .req-actions a.wa{color:var(--teal); border-color:var(--teal);}
+  .req-actions a.mail{color:var(--amber); border-color:var(--amber);}
+  .empty{color:var(--muted); font-size:14px; text-align:center; padding:30px 0;}
+
+  .note{
+    font-size:12px; color:var(--muted); margin-top:22px; text-align:center;
+    line-height:1.7;
+  }
+
+  .logo-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:18px; min-height:44px;
+  }
+  .logo-slot{
+    max-height:44px; max-width:110px; object-fit:contain;
+  }
+  .logo-slot:not([src]), .logo-slot[src=""]{
+    display:none;
+  }
+  .logo-upload-row{display:flex; gap:10px; margin-bottom:16px;}
+  .logo-upload-box{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:12px; text-align:center;
+  }
+  .logo-upload-box label{margin-bottom:8px;}
+  .logo-upload-box img{max-height:50px; max-width:100%; object-fit:contain; margin-bottom:8px; display:block; margin-inline:auto;}
+  .logo-upload-box input[type=file]{font-size:11px; color:var(--muted); width:100%;}
+</style>
+</head>
+<body>
+<div class="wrap" id="mainWrap">
+
+  <div id="publicView">
+    <div class="logo-bar">
+      <img id="logoRight" class="logo-slot" alt="">
+      <img id="logoLeft" class="logo-slot" alt="">
+    </div>
+    <div class="eyebrow">استوديو الملحقات · طلب مباشر</div>
+    <h1 class="display">Smmc Studio</h1>
+    <p class="sub">قول لنا محتاج إيه بالظبط، وطلبك بيتوصّل فورًا للشخص المسؤول .</p>
+
+    <div class="patchbay">
+      <div class="patchbay-row" id="jackRow"></div>
+      <div class="patchbay-caption">
+        <span>IN — بياناتك</span>
+        <span>OUT — يوصل للفريق</span>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <div class="sheet-title">
+        <span>ورقة الطلب</span>
+        <span class="mono" id="sheetId">#NEW</span>
+      </div>
+
+      <form id="reqForm">
+        <div class="field">
+          <label>الاسم</label>
+          <input type="text" id="f_name" required>
+        </div>
+        <div class="field">
+          <label>رقم الواتساب</label>
+          <input type="tel" id="f_wa" placeholder="01xxxxxxxxx" required>
+        </div>
+        <div class="field">
+          <label>الإيميل (اختياري)</label>
+          <input type="email" id="f_email" placeholder="example@mail.com">
+        </div>
+        <div class="field">
+          <label>نوع المعدة</label>
+          <select id="f_cat">
+            <option>كابلات ووصلات</option>
+            <option>مايكروفونات</option>
+            <option>Camera</option>
+            <option>إضاءة</option>
+            <option>حوامل (Stands)</option>
+            <option>حاجة تانية</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>وصف الطلب</label>
+          <textarea id="f_details" placeholder="اكتب المواصفات، العدد، وأي تفاصيل مهمة" required></textarea>
+        </div>
+        <div class="field">
+          <label>هيستخدمها في خدمة إيه؟</label>
+          <input type="text" id="f_purpose" placeholder="مثلاً: ابتدائي -اعدادي- ثانوي- خريجين">
+        </div>
+        <div class="field">
+          <label>هياخدها لمدة قد إيه؟</label>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <input type="number" id="f_days" min="0" placeholder="0" style="text-align:center;">
+              <div style="text-align:center; font-size:11px; color:var(--muted); margin-top:4px;">أيام</div>
+            </div>
+            <div style="flex:1;">
+              <input type="number" id="f_hours" min="0" max="23" placeholder="0" style="text-align:center;">
+              <div style="text-align:center; font-size:11px; color:var(--muted); margin-top:4px;">ساعات</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">إرسال الطلب</button>
+      </form>
+
+      <div class="confirm" id="confirmBox">
+        <div class="ok mono">✓ اتسجل الطلب</div>
+        <h2>طلبك وصل للوحة</h2>
+        <p>دلوقتي اختار طريقة إضافية عشان يوصل فورًا للفريق:</p>
+        <a id="waLink" class="btn btn-wa" target="_blank" rel="noopener">إرسال نسخة عبر واتساب</a>
+        <a id="mailLink" class="btn btn-mail">إرسال نسخة عبر الإيميل</a>
+        <button class="btn btn-outline" onclick="resetForm()">تسجيل طلب جديد</button>
+      </div>
+    </div>
+
+    <div class="toggle-admin">
+      <button onclick="showAdminGate()">Admin</button>
+    </div>
+  </div>
+
+  <div id="adminGate" style="display:none;">
+    <div class="logo-bar">
+      <img id="logoRightGate" class="logo-slot" alt="">
+      <img id="logoLeftGate" class="logo-slot" alt="">
+    </div>
+    <div class="eyebrow">وصول مقيّد</div>
+    <h1 class="display" style="font-size:26px;">Admin</h1>
+    <div class="sheet">
+      <div class="field">
+        <label>كود الدخول</label>
+        <input type="text" id="adminCode" placeholder="••••">
+      </div>
+      <button class="btn btn-primary" onclick="checkAdmin()">دخول</button>
+      <button class="btn btn-outline" onclick="backToPublic()">رجوع</button>
+    </div>
+  </div>
+
+  <div class="admin" id="adminView">
+    <div class="logo-bar">
+      <img id="logoRightAdmin" class="logo-slot" alt="">
+      <img id="logoLeftAdmin" class="logo-slot" alt="">
+    </div>
+    <div class="eyebrow">Admin</div>
+
+    <div class="logo-upload-row">
+      <div class="logo-upload-box">
+        <label>الشعار (يمين)</label>
+        <img id="logoRightPreview" style="display:none;">
+        <input type="file" accept="image/*" onchange="uploadLogo('Right', this)">
+      </div>
+      <div class="logo-upload-box">
+        <label>الشعار (شمال)</label>
+        <img id="logoLeftPreview" style="display:none;">
+        <input type="file" accept="image/*" onchange="uploadLogo('Left', this)">
+      </div>
+    </div>
+
+    <div class="staff-tabs">
+      <button id="tabReqBtn" class="active" onclick="switchStaffTab('req')">الطلبات</button>
+      <button id="tabLibBtn" onclick="switchStaffTab('lib')">المكتبة</button>
+      <button id="tabCamBtn" onclick="switchStaffTab('cam')">كاميرا المراقبة</button>
+    </div>
+
+    <div id="staffReq">
+      <h1 class="display" style="font-size:22px;">كل الطلبات</h1>
+      <div id="reqList"></div>
+    </div>
+
+    <div id="staffLib" style="display:none;">
+      <h1 class="display" style="font-size:22px;">مكتبة المعدات</h1>
+      <p class="sub" style="margin-bottom:16px;">صوّر القطعة وقت الخروج ووقت الرجوع، والموقع بيسجل الوقت أوتوماتيك.</p>
+      <div class="add-item-form">
+        <input type="text" id="newItemName" placeholder="اسم قطعة جديدة (مثلاً: مايك شور SM7B)">
+        <button onclick="addItem()">إضافة</button>
+      </div>
+
+      <div class="import-row">
+        <label>استيراد من إكسل</label>
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+        <button onclick="importFromExcel()">استيراد</button>
+      </div>
+      <div class="import-status" id="importStatus">ملف فيه عمود اسمه "الاسم" أو "Name" (لو مفيش، بياخد أول عمود). ممكن كمان عمود "كود" اختياري.</div>
+
+      <div id="itemList"></div>
+    </div>
+
+    <div id="staffCam" style="display:none;">
+      <h1 class="display" style="font-size:22px;">بث كاميرا المراقبة</h1>
+      <p class="sub" style="margin-bottom:16px;">المكان جاهز — لما يبقى عندك رابط بث HLS (.m3u8) من الـ DVR أو من سيرفر وسيط زي MediaMTX، حطه هنا وهيتشغل هنا مباشرة.</p>
+      <div class="cam-setup">
+        <input type="text" id="camUrlInput" placeholder="https://example.com/stream.m3u8">
+        <button onclick="saveCameraUrl()">حفظ وتشغيل</button>
+      </div>
+      <div class="cam-frame" id="camFrame">مفيش رابط محفوظ لسه</div>
+      <div class="cam-status" id="camStatus"></div>
+    </div>
+
+    <div class="toggle-admin">
+      <button onclick="backToPublic()">رجوع للموقع</button>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="camModal">
+    <div class="modal">
+      <h3 id="camTitle">تصوير القطعة</h3>
+      <div class="modal-preview" id="camPreview">اضغط "فتح الكاميرا" تحت</div>
+      <input type="file" accept="image/*" capture="environment" id="camInput" style="display:none;">
+      <button class="btn btn-primary" onclick="document.getElementById('camInput').click()">فتح الكاميرا</button>
+      <button class="btn btn-outline" id="camConfirmBtn" style="display:none;" onclick="confirmCamEvent()">تأكيد وحفظ</button>
+      <button class="btn btn-outline" onclick="closeCamModal()">إلغاء</button>
+    </div>
+  </div>
+
+  <p class="note"> 
+  </p>
+</div>
+
+<script>
+  // --
+  const BUSINESS_WHATSAPP = "201000000000"; // 
+  const BUSINESS_EMAIL = "team@example.com";
+  const ADMIN_CODE = "Smmc2468"; // 
+
+  // build patch bay jacks
+  const jackRow = document.getElementById('jackRow');
+  for(let i=0;i<8;i++){
+    const j = document.createElement('div');
+    j.className = 'jack' + (i===6 ? ' live' : '');
+    jackRow.appendChild(j);
+  }
+
+  document.getElementById('sheetId').textContent = '#' + Date.now().toString().slice(-6);
+  loadLogos();
+
+  let lastRequest = null;
+
+  document.getElementById('reqForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const name = document.getElementById('f_name').value.trim();
+    const wa = document.getElementById('f_wa').value.trim();
+    const email = document.getElementById('f_email').value.trim();
+    const cat = document.getElementById('f_cat').value;
+    const details = document.getElementById('f_details').value.trim();
+    const purpose = document.getElementById('f_purpose').value.trim();
+    const days = document.getElementById('f_days').value || '0';
+    const hours = document.getElementById('f_hours').value || '0';
+    const duration = `${days} يوم / ${hours} ساعة`;
+
+    const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const createdAt = new Date().toISOString();
+    const record = { id, name, wa, email, cat, details, purpose, duration, createdAt };
+    lastRequest = record;
+
+    try{
+      await window.storage.set('requests:' + id, JSON.stringify(record), true);
+    }catch(err){
+      console.error('storage error', err);
+    }
+
+    const text = encodeURIComponent(
+      `طلب جديد من لوحة الوصلات\nالاسم: ${name}\nالنوع: ${cat}\nالتفاصيل: ${details}\nالاستخدام: ${purpose || '—'}\nالمدة: ${duration}\nواتساب العميل: ${wa}`
+    );
+    document.getElementById('waLink').href = `https://wa.me/${BUSINESS_WHATSAPP}?text=${text}`;
+    document.getElementById('mailLink').href = `mailto:${BUSINESS_EMAIL}?subject=${encodeURIComponent('طلب جديد - ' + name)}&body=${text}`;
+
+    document.getElementById('reqForm').style.display = 'none';
+    document.getElementById('confirmBox').style.display = 'block';
+  });
+
+  function resetForm(){
+    document.getElementById('reqForm').reset();
+    document.getElementById('reqForm').style.display = 'block';
+    document.getElementById('confirmBox').style.display = 'none';
+    document.getElementById('sheetId').textContent = '#' + Date.now().toString().slice(-6);
+  }
+
+  function showAdminGate(){
+    document.getElementById('publicView').style.display = 'none';
+    document.getElementById('adminGate').style.display = 'block';
+  }
+  function backToPublic(){
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('adminView').style.display = 'none';
+    document.getElementById('publicView').style.display = 'block';
+  }
+  async function checkAdmin(){
+    const code = document.getElementById('adminCode').value.trim();
+    if(code !== ADMIN_CODE){
+      alert('كود غلط');
+      return;
+    }
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('adminView').style.display = 'block';
+    await loadRequests();
+    await loadItems();
+    await previewLogos();
+  }
+
+  // ---------------- شعار الموقع (يمين / شمال) ----------------
+
+  async function loadLogos(){
+    try{
+      const r = await window.storage.get('settings:logoRight', true);
+      if(r && r.value) setLogoSrc('Right', r.value);
+    }catch(e){}
+    try{
+      const l = await window.storage.get('settings:logoLeft', true);
+      if(l && l.value) setLogoSrc('Left', l.value);
+    }catch(e){}
+  }
+
+  function setLogoSrc(side, dataUrl){
+    ['logo' + side, 'logo' + side + 'Gate', 'logo' + side + 'Admin'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.src = dataUrl;
+    });
+  }
+
+  async function previewLogos(){
+    try{
+      const r = await window.storage.get('settings:logoRight', true);
+      if(r && r.value){
+        const img = document.getElementById('logoRightPreview');
+        img.src = r.value; img.style.display = 'block';
+      }
+    }catch(e){}
+    try{
+      const l = await window.storage.get('settings:logoLeft', true);
+      if(l && l.value){
+        const img = document.getElementById('logoLeftPreview');
+        img.src = l.value; img.style.display = 'block';
+      }
+    }catch(e){}
+  }
+
+  function uploadLogo(side, input){
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(ev){
+      const img = new Image();
+      img.onload = async function(){
+        const maxH = 120;
+        let w = img.width, h = img.height;
+        if(h > maxH){ w = w * (maxH / h); h = maxH; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/png');
+        try{
+          await window.storage.set('settings:logo' + side, dataUrl, true);
+        }catch(err){ console.error(err); }
+        setLogoSrc(side, dataUrl);
+        const preview = document.getElementById('logo' + side + 'Preview');
+        preview.src = dataUrl; preview.style.display = 'block';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function switchStaffTab(tab){
+    document.getElementById('staffReq').style.display = tab === 'req' ? 'block' : 'none';
+    document.getElementById('staffLib').style.display = tab === 'lib' ? 'block' : 'none';
+    document.getElementById('staffCam').style.display = tab === 'cam' ? 'block' : 'none';
+    document.getElementById('tabReqBtn').classList.toggle('active', tab === 'req');
+    document.getElementById('tabLibBtn').classList.toggle('active', tab === 'lib');
+    document.getElementById('tabCamBtn').classList.toggle('active', tab === 'cam');
+    if(tab === 'cam') loadCameraUrl();
+  }
+
+  // ---------------- كاميرا المراقبة (مكان جاهز لرابط HLS) ----------------
+
+  let hlsInstance = null;
+
+  async function loadCameraUrl(){
+    const statusEl = document.getElementById('camStatus');
+    try{
+      const r = await window.storage.get('settings:cameraUrl', true);
+      if(r && r.value){
+        document.getElementById('camUrlInput').value = r.value;
+        playCameraStream(r.value);
+      }
+    }catch(err){
+      statusEl.textContent = '';
+    }
+  }
+
+  async function saveCameraUrl(){
+    const url = document.getElementById('camUrlInput').value.trim();
+    if(!url) return;
+    try{
+      await window.storage.set('settings:cameraUrl', url, true);
+    }catch(err){ console.error(err); }
+    playCameraStream(url);
+  }
+
+  function playCameraStream(url){
+    const frame = document.getElementById('camFrame');
+    const statusEl = document.getElementById('camStatus');
+    frame.innerHTML = '<video id="camVideo" autoplay muted playsinline controls></video>';
+    const video = document.getElementById('camVideo');
+
+    if(hlsInstance){ hlsInstance.destroy(); hlsInstance = null; }
+
+    if(window.Hls && Hls.isSupported()){
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.ERROR, function(event, data){
+        if(data.fatal){
+          statusEl.textContent = 'مش قادر يشغّل الرابط ده — تأكد إنه بث HLS (.m3u8) صحيح وشغال.';
+        }
+      });
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(){
+        statusEl.textContent = 'البث شغال ✓';
+      });
+    } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+      video.src = url;
+      statusEl.textContent = 'البث شغال ✓';
+    } else {
+      statusEl.textContent = 'المتصفح ده مش بيدعم تشغيل HLS.';
+    }
+  }
+
+  // ---------------- المكتبة (تتبع خروج/دخول القطع بالكاميرا) ----------------
+
+  async function addItem(){
+    const nameEl = document.getElementById('newItemName');
+    const name = nameEl.value.trim();
+    if(!name) return;
+    const id = 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const item = { id, name, status: 'available', lastPhoto: null, lastAt: null, lastType: null };
+    try{
+      await window.storage.set('items:' + id, JSON.stringify(item), true);
+    }catch(err){ console.error(err); }
+    nameEl.value = '';
+    await loadItems();
+  }
+
+  function findKey(rowKeys, patterns){
+    return rowKeys.find(k => patterns.some(p => k.toLowerCase().includes(p)));
+  }
+
+  async function importFromExcel(){
+    const fileInput = document.getElementById('excelFile');
+    const statusEl = document.getElementById('importStatus');
+    const file = fileInput.files[0];
+    if(!file){
+      statusEl.textContent = 'اختار ملف الأول.';
+      return;
+    }
+    statusEl.textContent = 'بيتقرأ الملف...';
+    try{
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if(rows.length === 0){
+        statusEl.textContent = 'الملف فاضي أو مش قادر يقرأه.';
+        return;
+      }
+
+      const sampleKeys = Object.keys(rows[0]);
+      const nameKey = findKey(sampleKeys, ['اسم', 'name']);
+      const codeKey = findKey(sampleKeys, ['كود', 'code', 'id']);
+
+      let count = 0;
+      for(const row of rows){
+        const name = String(nameKey ? row[nameKey] : Object.values(row)[0] || '').trim();
+        if(!name) continue;
+        const code = codeKey ? String(row[codeKey] || '').trim() : '';
+        const id = 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+        const item = { id, name, code, status: 'available', lastPhoto: null, lastAt: null, lastType: null };
+        try{
+          await window.storage.set('items:' + id, JSON.stringify(item), true);
+          count++;
+        }catch(err){ console.error(err); }
+      }
+
+      statusEl.textContent = `اتضاف ${count} قطعة من الملف ✓`;
+      fileInput.value = '';
+      await loadItems();
+    }catch(err){
+      console.error(err);
+      statusEl.textContent = 'حصل خطأ في قراءة الملف — تأكد إنه xlsx أو csv سليم.';
+    }
+  }
+
+  async function loadItems(){
+    const listEl = document.getElementById('itemList');
+    listEl.innerHTML = '<div class="empty">بيتحمّل...</div>';
+    try{
+      const res = await window.storage.list('items:', true);
+      const keys = (res && res.keys) ? res.keys : [];
+      if(keys.length === 0){
+        listEl.innerHTML = '<div class="empty">لسه مفيش قطع مضافة</div>';
+        return;
+      }
+      const items = [];
+      for(const k of keys){
+        try{
+          const r = await window.storage.get(k, true);
+          if(r && r.value) items.push(JSON.parse(r.value));
+        }catch(e){}
+      }
+      items.sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+      listEl.innerHTML = '';
+      items.forEach(it => listEl.appendChild(renderItemCard(it)));
+    }catch(err){
+      listEl.innerHTML = '<div class="empty">حصل خطأ في تحميل المكتبة</div>';
+      console.error(err);
+    }
+  }
+
+  function renderItemCard(item){
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    const isOut = item.status === 'out';
+    card.innerHTML = `
+      <div class="top">
+        <div>
+          <div class="name">${escapeHtml(item.name)}</div>
+          <div class="code">${item.code ? escapeHtml(item.code) : item.id}</div>
+        </div>
+        <span class="badge ${isOut ? 'out' : 'available'}">${isOut ? 'برا' : 'متاحة'}</span>
+      </div>
+      <div class="item-meta">${item.lastAt ? (item.lastType === 'out' ? 'خرجت: ' : 'رجعت: ') + new Date(item.lastAt).toLocaleString('ar-EG') : 'مفيش حركة لسه'}</div>
+      <div class="item-actions">
+        ${!isOut ? `<button class="checkout" onclick="openCamModal('${item.id}','out')">تسجيل خروج</button>` : ''}
+        ${isOut ? `<button class="checkin" onclick="openCamModal('${item.id}','in')">تسجيل دخول</button>` : ''}
+        <button class="log" onclick="toggleLog('${item.id}', this)">السجل</button>
+      </div>
+      <div class="log-list" id="log_${item.id}"></div>
+    `;
+    return card;
+  }
+
+  async function toggleLog(itemId, btn){
+    const el = document.getElementById('log_' + itemId);
+    const opening = el.style.display !== 'block';
+    el.style.display = opening ? 'block' : 'none';
+    if(!opening || el.dataset.loaded) return;
+    el.innerHTML = 'بيتحمّل...';
+    try{
+      const res = await window.storage.list('events:' + itemId + ':', true);
+      const keys = (res && res.keys) ? res.keys : [];
+      const events = [];
+      for(const k of keys){
+        try{
+          const r = await window.storage.get(k, true);
+          if(r && r.value) events.push(JSON.parse(r.value));
+        }catch(e){}
+      }
+      events.sort((a,b) => new Date(b.at) - new Date(a.at));
+      el.innerHTML = events.length ? '' : '<div class="empty">مفيش سجل لسه</div>';
+      events.forEach(ev => {
+        const row = document.createElement('div');
+        row.className = 'log-row';
+        row.innerHTML = `
+          ${ev.photo ? `<img src="${ev.photo}">` : ''}
+          <span class="tag ${ev.type}">${ev.type === 'out' ? 'خروج' : 'دخول'}</span>
+          <span>${new Date(ev.at).toLocaleString('ar-EG')}</span>
+        `;
+        el.appendChild(row);
+      });
+      el.dataset.loaded = '1';
+    }catch(err){
+      el.innerHTML = '<div class="empty">حصل خطأ</div>';
+      console.error(err);
+    }
+  }
+
+  let camContext = null; // { itemId, type, photoDataUrl }
+
+  function openCamModal(itemId, type){
+    camContext = { itemId, type, photoDataUrl: null };
+    document.getElementById('camTitle').textContent = type === 'out' ? 'تصوير القطعة وقت الخروج' : 'تصوير القطعة وقت الرجوع';
+    document.getElementById('camPreview').innerHTML = 'اضغط "فتح الكاميرا" تحت';
+    document.getElementById('camConfirmBtn').style.display = 'none';
+    document.getElementById('camInput').value = '';
+    document.getElementById('camModal').style.display = 'flex';
+  }
+  function closeCamModal(){
+    document.getElementById('camModal').style.display = 'none';
+    camContext = null;
+  }
+
+  document.getElementById('camInput').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file || !camContext) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const img = new Image();
+      img.onload = function(){
+        // ضغط الصورة عشان الحجم يفضل صغير
+        const maxDim = 480;
+        let w = img.width, h = img.height;
+        if(w > h && w > maxDim){ h = h * (maxDim / w); w = maxDim; }
+        else if(h > maxDim){ w = w * (maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        camContext.photoDataUrl = dataUrl;
+        document.getElementById('camPreview').innerHTML = `<img src="${dataUrl}">`;
+        document.getElementById('camConfirmBtn').style.display = 'block';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function confirmCamEvent(){
+    if(!camContext || !camContext.photoDataUrl) return;
+    const { itemId, type, photoDataUrl } = camContext;
+    const at = new Date().toISOString();
+    const eventId = 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const event = { itemId, type, photo: photoDataUrl, at };
+    try{
+      await window.storage.set('events:' + itemId + ':' + eventId, JSON.stringify(event), true);
+      const r = await window.storage.get('items:' + itemId, true);
+      if(r && r.value){
+        const item = JSON.parse(r.value);
+        item.status = type === 'out' ? 'out' : 'available';
+        item.lastPhoto = photoDataUrl;
+        item.lastAt = at;
+        item.lastType = type;
+        await window.storage.set('items:' + itemId, JSON.stringify(item), true);
+      }
+    }catch(err){ console.error(err); }
+    closeCamModal();
+    await loadItems();
+  }
+
+  async function loadRequests(){
+    const listEl = document.getElementById('reqList');
+    listEl.innerHTML = '<div class="empty">بيتحمّل...</div>';
+    try{
+      const res = await window.storage.list('requests:', true);
+      const keys = (res && res.keys) ? res.keys : [];
+      if(keys.length === 0){
+        listEl.innerHTML = '<div class="empty">لسه مفيش طلبات</div>';
+        return;
+      }
+      const records = [];
+      for(const k of keys){
+        try{
+          const r = await window.storage.get(k, true);
+          if(r && r.value) records.push(JSON.parse(r.value));
+        }catch(e){}
+      }
+      records.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      listEl.innerHTML = '';
+      records.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'req-card';
+        const waText = encodeURIComponent(`رد بخصوص طلبك: ${r.details}`);
+        card.innerHTML = `
+          <div class="top">
+            <span class="name">${escapeHtml(r.name)}</span>
+            <span class="time mono">${new Date(r.createdAt).toLocaleString('ar-EG')}</span>
+          </div>
+          <div class="cat">${escapeHtml(r.cat)}</div>
+          <div class="details">${escapeHtml(r.details)}</div>
+          ${r.purpose ? `<div class="details" style="color:var(--muted); font-size:13px;">الاستخدام: ${escapeHtml(r.purpose)}</div>` : ''}
+          ${r.duration ? `<div class="details" style="color:var(--teal); font-size:13px;">المدة: ${escapeHtml(r.duration)}</div>` : ''}
+          <div class="req-actions">
+            <a class="wa" target="_blank" rel="noopener" href="https://wa.me/${escapeAttr(r.wa)}?text=${waText}">واتساب</a>
+            ${r.email ? `<a class="mail" href="mailto:${escapeAttr(r.email)}">إيميل</a>` : ''}
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }catch(err){
+      listEl.innerHTML = '<div class="empty">حصل خطأ في تحميل الطلبات</div>';
+      console.error(err);
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function escapeAttr(s){
+    return String(s || '').replace(/\D/g, '');
+  }
+</script>
+</body>
+</html>
